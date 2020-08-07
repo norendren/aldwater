@@ -1,19 +1,17 @@
 package main
 
 import (
-	"aldwater/floor"
+	"aldwater/dungeonGen"
 	"aldwater/player"
 	"errors"
-	"image/color"
-	"log"
-	"strconv"
-
 	"github.com/golang/freetype/truetype"
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/examples/resources/fonts"
 	"github.com/hajimehoshi/ebiten/inpututil"
 	"github.com/hajimehoshi/ebiten/text"
 	"golang.org/x/image/font"
+	"image/color"
+	"log"
 )
 
 //30x30
@@ -24,7 +22,7 @@ var (
 	normalFont font.Face
 	width      int
 	height     int
-	gameMap    *floor.Floor
+	gameMap    *dungeonGen.Floor
 )
 
 var p = player.Player{
@@ -50,7 +48,8 @@ func init() {
 }
 
 type Game struct {
-	pressed []ebiten.Key
+	Pressed []ebiten.Key
+	Level   *dungeonGen.Floor
 }
 
 func (g *Game) Update(screen *ebiten.Image) error {
@@ -75,7 +74,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		gameMap.Area[p.Y][p.X].Posy,
 		color.White)
 
-	text.Draw(screen, strconv.Itoa(int(ebiten.CurrentTPS())), normalFont, 24, 700, color.White)
+	//text.Draw(screen, strconv.Itoa(int(ebiten.CurrentTPS())), normalFont, 24, 700, color.White)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
@@ -83,12 +82,15 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 }
 
 func main() {
-	gameMap = floor.New(cols, rows, int(fontSize))
+	gameMap = dungeonGen.New(cols, rows, int(fontSize))
 	p.StartingPosition(gameMap)
 
 	ebiten.SetWindowSize(width, height)
 	ebiten.SetWindowTitle("Aldwater")
-	if err := ebiten.RunGame(&Game{}); err != nil {
+	if err := ebiten.RunGame(&Game{
+		Level: gameMap,
+	}); err != nil {
 		log.Fatal(err)
 	}
+
 }

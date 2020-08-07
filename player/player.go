@@ -1,7 +1,7 @@
 package player
 
 import (
-	"aldwater/floor"
+	"aldwater/dungeonGen"
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/inpututil"
 )
@@ -12,7 +12,7 @@ type Player struct {
 	Char string
 }
 
-func (p *Player) move(f *floor.Floor, addX, addY int) {
+func (p *Player) move(f *dungeonGen.Floor, addX, addY int) {
 	destX := p.X + addX
 	destY := p.Y + addY
 
@@ -27,7 +27,7 @@ func (p *Player) move(f *floor.Floor, addX, addY int) {
 	return
 }
 
-func (p *Player) StartingPosition(f *floor.Floor) {
+func (p *Player) StartingPosition(f *dungeonGen.Floor) {
 	for c, row := range f.Area {
 		for r, tile := range row {
 			if tile.Walkable {
@@ -40,7 +40,7 @@ func (p *Player) StartingPosition(f *floor.Floor) {
 	return
 }
 
-func (p *Player) HandleMovement(f *floor.Floor) {
+func (p *Player) HandleMovement(f *dungeonGen.Floor) {
 	if inpututil.IsKeyJustPressed(ebiten.KeyKP1) || inpututil.IsKeyJustPressed(ebiten.KeyB) {
 		p.move(f, -1, 1)
 	}
