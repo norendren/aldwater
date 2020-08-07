@@ -8,4 +8,5 @@ require (
 	github.com/hajimehoshi/ebiten v1.11.4
 	github.com/mattn/go-runewidth v0.0.9 // indirect
 	github.com/meshiest/go-dungeon v0.0.0-20160809210039-1d1d1e7596b8
+	golang.org/x/image v0.0.0-20191009234506-e7c1f5e7dbb8
 )

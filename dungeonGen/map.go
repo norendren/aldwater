@@ -1,7 +1,6 @@
 package dungeonGen
 
 import (
-	"aldwater/player"
 	"image/color"
 	"math"
 	"sync"
@@ -10,29 +9,90 @@ import (
 )
 
 type Floor struct {
-	Area     [][]*Tile
-	Visible  []*Tile
-	Explored []*Tile
-	Cols     int
-	Rows     int
+	Area    [][]*Tile
+	Visible []*Tile
+	Cols    int
+	Rows    int
 	sync.Mutex
 }
 
-func (f *Floor) ComputeFOV(p *player.Player, r int) {
+func (f *Floor) ComputeFOV(pX, pY, r int) {
 	f.Visible = nil
-	for i := 1; i <= 8; i++ {
-		f.fov(p, p.X, p.Y, 1, 0, 1, i, r)
+	f.Visible = append(f.Visible, f.Area[pY][pX])
+	f.Area[pY][pX].Explored = true
+	for i := 1; i <= 2; i++ {
+		f.fov(pX, pY, pX, pY, 1, 1, 0, i, r)
 	}
 }
 
-func (f *Floor) fov(p *player.Player, x, y, dist int, startSlope, endSlope float64, oct, rad int) {
+func (f *Floor) InBounds(x, y int) bool {
+	if x >= f.Cols || y >= f.Cols {
+		return false
+	}
+	if x < 0 || y < 0 {
+		return false
+	}
+	return true
+}
+
+func (f *Floor) fov(px, py, x, y, dist int, startSlope, endSlope float64, oct, rad int) {
 	if dist > rad {
 		return
 	}
-	for startSlope < endSlope {
+	initX, initY := initCoords(px, py, dist, oct)
 
+	for startSlope != endSlope {
+		if f.InBounds(initX, initY) && distTo(px, py, initX, initY) < rad {
+			f.Visible = append(f.Visible, f.Area[initY][initX])
+			f.Area[initY][initX].Explored = true
+		}
+		initX, initY = progress(initX, initY, oct)
+		if oct == 2 {
+			startSlope = invSlope(px, py, initX, initY)
+		} else {
+			startSlope = invSlope(px, py, initX, initY)
+		}
+
+		if startSlope == endSlope {
+			f.fov(px, py, px, py, dist+1, 1, 0, oct, rad)
+		}
 	}
 
+}
+func progress(x, y, oct int) (int, int) {
+	switch oct {
+	case 1:
+		return x + 1, y
+	case 2:
+		return x - 1, y
+	}
+	return 0, 0
+}
+
+func invSlope(x1, y1, x2, y2 int) float64 {
+	fx1 := float64(x1)
+	fx2 := float64(x2)
+	fy1 := float64(y1)
+	fy2 := float64(y2)
+	return (fx2 - fx1) / (fy2 - fy1)
+}
+
+func slope(x1, y1, x2, y2 int) float64 {
+	fx1 := float64(x1)
+	fx2 := float64(x2)
+	fy1 := float64(y1)
+	fy2 := float64(y2)
+	return (fy2 - fy1) / (fx2 - fx1)
+}
+
+func initCoords(x, y, dist, oct int) (int, int) {
+	switch oct {
+	case 1:
+		return x - dist, y - dist
+	case 2:
+		return x + dist, y - dist
+	}
+	return 0, 0
 }
 
 func mapXY(x, y, dist, oct int) (int, int) {
@@ -88,6 +148,7 @@ type Tile struct {
 	Posx     int
 	Posy     int
 	Color    color.Color
+	Explored bool
 }
 
 func NewTile(walkable bool, char string, posx, posy int, c color.Color) *Tile {

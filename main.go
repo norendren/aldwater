@@ -1,6 +1,7 @@
 package main
 
 import (
+	"aldwater/displayResource"
 	"aldwater/dungeonGen"
 	"aldwater/player"
 	"errors"
@@ -57,6 +58,7 @@ func (g *Game) Update(screen *ebiten.Image) error {
 		return errors.New("ended by player")
 	}
 	p.HandleMovement(gameMap)
+	gameMap.ComputeFOV(p.X, p.Y, 8)
 
 	return nil
 }
@@ -64,9 +66,15 @@ func (g *Game) Update(screen *ebiten.Image) error {
 func (g *Game) Draw(screen *ebiten.Image) {
 	for _, row := range gameMap.Area {
 		for _, tile := range row {
-			text.Draw(screen, tile.Char, normalFont, tile.Posx, tile.Posy, tile.Color)
+			if tile.Explored {
+				text.Draw(screen, tile.Char, normalFont, tile.Posx, tile.Posy, displayResource.Color3)
+			}
 		}
 	}
+	for _, tile := range gameMap.Visible {
+		text.Draw(screen, tile.Char, normalFont, tile.Posx, tile.Posy, tile.Color)
+	}
+
 	text.Draw(screen,
 		p.Char,
 		normalFont,
