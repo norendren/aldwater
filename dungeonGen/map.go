@@ -22,7 +22,7 @@ func (f *Floor) ComputeFOV(pX, pY, r int) {
 	f.Visible[fmt.Sprintf("%d%d", pX, pY)] = f.Area[pY][pX]
 	f.Area[pY][pX].Explored = true
 	for i := 1; i <= 8; i++ {
-		f.fov(pX, pY, 1, 1, 0, i, r)
+		f.fov(pX, pY, 1, 0, 1, i, r)
 	}
 }
 
@@ -36,120 +36,47 @@ func (f *Floor) InBounds(x, y int) bool {
 	return true
 }
 
-func (f *Floor) fov(px, py, dist int, startSlope, endSlope float64, oct, rad int) {
+func (f *Floor) fov(px, py, dist int, lowSlope, highSlope float64, oct, rad int) {
 	if dist > rad {
 		return
 	}
-	initX, initY := initCoords(px, py, dist, oct, startSlope)
-	//consecutiveBlocked := false
+	low := math.Floor(lowSlope*float64(dist) + 0.5)
+	high := math.Floor(highSlope*float64(dist) + 0.5)
+	inGap := false
 
-	//for i := 0; i < 200; i++ {
-	for startSlope != endSlope {
-		if f.InBounds(initX, initY) && distTo(px, py, initX, initY) < rad {
-			f.Visible[fmt.Sprintf("%d%d", initX, initY)] = f.Area[initY][initX]
-			f.Area[initY][initX].Explored = true
-
-			//if oct == 1 {
-			//	if !f.Area[initY][initX].Walkable && !consecutiveBlocked {
-			//		f.fov(px, py, dist+1, startSlope, mSlope(px, py, initX, initY, oct), oct, rad)
-			//		consecutiveBlocked = true
-			//	} else if f.Area[initY][initX].Walkable && consecutiveBlocked {
-			//		startSlope = mSlope(px, py, initX, initY, oct)
-			//		consecutiveBlocked = false
-			//	}
-			//}
+	for height := low; height <= high; height++ {
+		mapx, mapy := distHeightXY(px, py, dist, int(height), oct)
+		if f.InBounds(mapx, mapy) && distTo(px, py, mapx, mapy) < rad {
+			f.Visible[fmt.Sprintf("%d%d", mapx, mapy)] = f.Area[mapy][mapx]
+			f.Area[mapy][mapx].Explored = true
 		}
-		initX, initY = progress(initX, initY, px, py, oct)
 
-		if mSlope(px, py, initX, initY, oct) == endSlope {
-			if f.InBounds(initX, initY) && distTo(px, py, initX, initY) < rad {
-				f.Visible[fmt.Sprintf("%d%d", initX, initY)] = f.Area[initY][initX]
-				f.Area[initY][initX].Explored = true
-				if !f.Area[initY][initX].Walkable {
-					return
-				}
+		if f.InBounds(mapx, mapy) && !f.Area[mapy][mapx].Walkable {
+			if inGap {
+				f.fov(px, py, dist+1, lowSlope, (height-0.5)/float64(dist), oct, rad)
 			}
-
-			f.fov(px, py, dist+1, startSlope, endSlope, oct, rad)
-			return
+			lowSlope = (height + 0.5) / float64(dist)
+			inGap = false
+		} else {
+			inGap = true
+			if height == high {
+				f.fov(px, py, dist+1, lowSlope, highSlope, oct, rad)
+			}
 		}
 	}
-
 }
-func progress(x, y, px, py, oct int) (int, int) {
-	switch oct {
-	case 1, 6:
-		x += 1
-		return x, y
-	case 2, 5:
-		x -= 1
-		return x, y
-	case 3, 8:
-		y += 1
-		return x, y
-	case 4, 7:
-		y -= 1
-		return x, y
+
+func distHeightXY(px, py, d, h, oct int) (int, int) {
+	if oct&0x1 > 0 {
+		d = -d
 	}
-	return 0, 0
-}
-
-func initCoords(x, y, dist, oct int, s float64) (int, int) {
-	//switch oct {
-	//case 1:
-	//	return x - int(s*float64(dist)), y - dist
-	//case 8:
-	//	return x - dist, y - int(s*float64(dist))
-	//case 2, 3:
-	//	return x + dist, y - dist
-	//case 4, 5:
-	//	return x + dist, y + dist
-	//case 6, 7:
-	//	return x - dist, y + dist
-	//}
-	switch oct {
-	case 1:
-		return x - int(s*float64(dist)), y - dist
-	case 2:
-		return x + int(s*float64(dist)), y - dist
-	case 3:
-		return x + dist, y - int(s*float64(dist))
-	case 4:
-		return x + dist, y + int(s*float64(dist))
-	case 5:
-		return x + int(s*float64(dist)), y + dist
-	case 6:
-		return x - int(s*float64(dist)), y + dist
-	case 7:
-		return x - dist, y + int(s*float64(dist))
-	case 8:
-		return x - dist, y - int(s*float64(dist))
+	if oct&0x2 > 0 {
+		h = -h
 	}
-	return 0, 0
-}
-
-func mSlope(x1, y1, x2, y2, oct int) float64 {
-	switch oct {
-	case 1, 2, 5, 6:
-		return invSlope(x1, y1, x2, y2)
-	default:
-		return slope(x1, y1, x2, y2)
+	if oct&0x4 > 0 {
+		return px + h, py + d
 	}
-}
-func invSlope(x1, y1, x2, y2 int) float64 {
-	fx1 := float64(x1)
-	fx2 := float64(x2)
-	fy1 := float64(y1)
-	fy2 := float64(y2)
-	return (fx2 - fx1) / (fy2 - fy1)
-}
-
-func slope(x1, y1, x2, y2 int) float64 {
-	fx1 := float64(x1)
-	fx2 := float64(x2)
-	fy1 := float64(y1)
-	fy2 := float64(y2)
-	return (fy2 - fy1) / (fx2 - fx1)
+	return px + d, py + h
 }
 
 func distTo(x1, y1, x2, y2 int) int {
