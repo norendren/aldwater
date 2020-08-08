@@ -1,6 +1,7 @@
 package dungeonGen
 
 import (
+	"fmt"
 	"image/color"
 	"math"
 	"sync"
@@ -10,18 +11,18 @@ import (
 
 type Floor struct {
 	Area    [][]*Tile
-	Visible []*Tile
+	Visible map[string]*Tile
 	Cols    int
 	Rows    int
 	sync.Mutex
 }
 
 func (f *Floor) ComputeFOV(pX, pY, r int) {
-	f.Visible = nil
-	f.Visible = append(f.Visible, f.Area[pY][pX])
+	f.Visible = make(map[string]*Tile)
+	f.Visible[fmt.Sprintf("%d%d", pX, pY)] = f.Area[pY][pX]
 	f.Area[pY][pX].Explored = true
-	for i := 1; i <= 2; i++ {
-		f.fov(pX, pY, pX, pY, 1, 1, 0, i, r)
+	for i := 1; i <= 8; i++ {
+		f.fov(pX, pY, 1, 1, 0, i, r)
 	}
 }
 
@@ -35,40 +36,106 @@ func (f *Floor) InBounds(x, y int) bool {
 	return true
 }
 
-func (f *Floor) fov(px, py, x, y, dist int, startSlope, endSlope float64, oct, rad int) {
+func (f *Floor) fov(px, py, dist int, startSlope, endSlope float64, oct, rad int) {
 	if dist > rad {
 		return
 	}
-	initX, initY := initCoords(px, py, dist, oct)
+	initX, initY := initCoords(px, py, dist, oct, startSlope)
+	//consecutiveBlocked := false
 
+	//for i := 0; i < 200; i++ {
 	for startSlope != endSlope {
 		if f.InBounds(initX, initY) && distTo(px, py, initX, initY) < rad {
-			f.Visible = append(f.Visible, f.Area[initY][initX])
+			f.Visible[fmt.Sprintf("%d%d", initX, initY)] = f.Area[initY][initX]
 			f.Area[initY][initX].Explored = true
-		}
-		initX, initY = progress(initX, initY, oct)
-		if oct == 2 {
-			startSlope = invSlope(px, py, initX, initY)
-		} else {
-			startSlope = invSlope(px, py, initX, initY)
-		}
 
-		if startSlope == endSlope {
-			f.fov(px, py, px, py, dist+1, 1, 0, oct, rad)
+			//if oct == 1 {
+			//	if !f.Area[initY][initX].Walkable && !consecutiveBlocked {
+			//		f.fov(px, py, dist+1, startSlope, mSlope(px, py, initX, initY, oct), oct, rad)
+			//		consecutiveBlocked = true
+			//	} else if f.Area[initY][initX].Walkable && consecutiveBlocked {
+			//		startSlope = mSlope(px, py, initX, initY, oct)
+			//		consecutiveBlocked = false
+			//	}
+			//}
+		}
+		initX, initY = progress(initX, initY, px, py, oct)
+
+		if mSlope(px, py, initX, initY, oct) == endSlope {
+			if f.InBounds(initX, initY) && distTo(px, py, initX, initY) < rad {
+				f.Visible[fmt.Sprintf("%d%d", initX, initY)] = f.Area[initY][initX]
+				f.Area[initY][initX].Explored = true
+				if !f.Area[initY][initX].Walkable {
+					return
+				}
+			}
+
+			f.fov(px, py, dist+1, startSlope, endSlope, oct, rad)
+			return
 		}
 	}
 
 }
-func progress(x, y, oct int) (int, int) {
+func progress(x, y, px, py, oct int) (int, int) {
 	switch oct {
-	case 1:
-		return x + 1, y
-	case 2:
-		return x - 1, y
+	case 1, 6:
+		x += 1
+		return x, y
+	case 2, 5:
+		x -= 1
+		return x, y
+	case 3, 8:
+		y += 1
+		return x, y
+	case 4, 7:
+		y -= 1
+		return x, y
 	}
 	return 0, 0
 }
 
+func initCoords(x, y, dist, oct int, s float64) (int, int) {
+	//switch oct {
+	//case 1:
+	//	return x - int(s*float64(dist)), y - dist
+	//case 8:
+	//	return x - dist, y - int(s*float64(dist))
+	//case 2, 3:
+	//	return x + dist, y - dist
+	//case 4, 5:
+	//	return x + dist, y + dist
+	//case 6, 7:
+	//	return x - dist, y + dist
+	//}
+	switch oct {
+	case 1:
+		return x - int(s*float64(dist)), y - dist
+	case 2:
+		return x + int(s*float64(dist)), y - dist
+	case 3:
+		return x + dist, y - int(s*float64(dist))
+	case 4:
+		return x + dist, y + int(s*float64(dist))
+	case 5:
+		return x + int(s*float64(dist)), y + dist
+	case 6:
+		return x - int(s*float64(dist)), y + dist
+	case 7:
+		return x - dist, y + int(s*float64(dist))
+	case 8:
+		return x - dist, y - int(s*float64(dist))
+	}
+	return 0, 0
+}
+
+func mSlope(x1, y1, x2, y2, oct int) float64 {
+	switch oct {
+	case 1, 2, 5, 6:
+		return invSlope(x1, y1, x2, y2)
+	default:
+		return slope(x1, y1, x2, y2)
+	}
+}
 func invSlope(x1, y1, x2, y2 int) float64 {
 	fx1 := float64(x1)
 	fx2 := float64(x2)
@@ -83,24 +150,6 @@ func slope(x1, y1, x2, y2 int) float64 {
 	fy1 := float64(y1)
 	fy2 := float64(y2)
 	return (fy2 - fy1) / (fx2 - fx1)
-}
-
-func initCoords(x, y, dist, oct int) (int, int) {
-	switch oct {
-	case 1:
-		return x - dist, y - dist
-	case 2:
-		return x + dist, y - dist
-	}
-	return 0, 0
-}
-
-func mapXY(x, y, dist, oct int) (int, int) {
-	switch oct {
-	case 1:
-		return x + dist, y + dist
-	}
-	return 0, 0
 }
 
 func distTo(x1, y1, x2, y2 int) int {

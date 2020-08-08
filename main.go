@@ -1,7 +1,6 @@
 package main
 
 import (
-	"aldwater/displayResource"
 	"aldwater/dungeonGen"
 	"aldwater/player"
 	"errors"
@@ -13,6 +12,7 @@ import (
 	"golang.org/x/image/font"
 	"image/color"
 	"log"
+	"strconv"
 )
 
 //30x30
@@ -64,13 +64,13 @@ func (g *Game) Update(screen *ebiten.Image) error {
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	for _, row := range gameMap.Area {
-		for _, tile := range row {
-			if tile.Explored {
-				text.Draw(screen, tile.Char, normalFont, tile.Posx, tile.Posy, displayResource.Color3)
-			}
-		}
-	}
+	//for _, row := range gameMap.Area {
+	//	for _, tile := range row {
+	//		if tile.Explored {
+	//			text.Draw(screen, tile.Char, normalFont, tile.Posx, tile.Posy, displayResource.Color3)
+	//		}
+	//	}
+	//}
 	for _, tile := range gameMap.Visible {
 		text.Draw(screen, tile.Char, normalFont, tile.Posx, tile.Posy, tile.Color)
 	}
@@ -82,7 +82,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		gameMap.Area[p.Y][p.X].Posy,
 		color.White)
 
-	//text.Draw(screen, strconv.Itoa(int(ebiten.CurrentTPS())), normalFont, 24, 700, color.White)
+	text.Draw(screen, strconv.Itoa(int(ebiten.CurrentTPS())), normalFont, 24, 700, color.White)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
