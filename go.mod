@@ -10,7 +10,7 @@ require (
 	github.com/lucasb-eyer/go-colorful v1.0.3 // indirect
 	github.com/mattn/go-runewidth v0.0.9 // indirect
 	github.com/meshiest/go-dungeon v0.0.0-20160809210039-1d1d1e7596b8
-	github.com/norendren/go-fov v0.0.0-20200809131654-436b8763caff
+	github.com/norendren/go-fov v0.0.10
 	golang.org/x/exp v0.0.0-20200513190911-00229845015e // indirect
 	golang.org/x/image v0.0.0-20200801110659-972c09e46d76
 	golang.org/x/mobile v0.0.0-20200801112145-973feb4309de // indirect

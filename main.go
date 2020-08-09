@@ -61,8 +61,7 @@ func (g *Game) Update(screen *ebiten.Image) error {
 		return errors.New("ended by player")
 	}
 	p.HandleMovement(g.Level)
-	//g.FOVCalc.Compute(g.Level, p.X, p.Y, 6)
-	g.Level.ComputeFOV(p.X, p.Y, 6)
+	g.FOVCalc.Compute(g.Level, p.X, p.Y, 6)
 
 	return nil
 }
@@ -70,10 +69,11 @@ func (g *Game) Update(screen *ebiten.Image) error {
 func (g *Game) Draw(screen *ebiten.Image) {
 	for y, row := range g.Level.Area {
 		for x, tile := range row {
-			if g.Level.IsVisible(x, y) {
+			if g.FOVCalc.IsVisible(x, y) {
 				text.Draw(screen, tile.Char, normalFont, tile.Posx, tile.Posy, tile.Color)
+				tile.Explored = true
 			}
-			if tile.Explored && !g.Level.IsVisible(x, y) {
+			if tile.Explored && !g.FOVCalc.IsVisible(x, y) {
 				text.Draw(screen, tile.Char, normalFont, tile.Posx, tile.Posy, displayResource.Color3)
 			}
 		}

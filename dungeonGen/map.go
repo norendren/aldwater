@@ -37,7 +37,7 @@ func (f *Floor) IsVisible(x, y int) bool {
 }
 
 func (f *Floor) InBounds(x, y int) bool {
-	if x >= f.Cols || y >= f.Cols {
+	if x >= f.Rows || y >= f.Cols {
 		return false
 	}
 	if x < 0 || y < 0 {
@@ -54,7 +54,7 @@ func (f *Floor) IsOpaque(x, y int) bool {
 }
 
 func (f *Floor) Index(x, y int) (int, int) {
-	return x, y
+	return y, x
 }
 
 func (f *Floor) fov(px, py, dist int, lowSlope, highSlope float64, oct, rad int) {
