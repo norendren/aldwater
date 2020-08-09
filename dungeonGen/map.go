@@ -10,20 +10,30 @@ import (
 )
 
 type Floor struct {
-	Area    [][]*Tile
-	Visible map[string]*Tile
-	Cols    int
-	Rows    int
+	Area     [][]*Tile
+	Visible  map[string]*Tile
+	Svisible map[string]struct{}
+	Cols     int
+	Rows     int
 	sync.Mutex
 }
 
 func (f *Floor) ComputeFOV(pX, pY, r int) {
 	f.Visible = make(map[string]*Tile)
+	f.Svisible = make(map[string]struct{})
 	f.Visible[fmt.Sprintf("%d%d", pX, pY)] = f.Area[pY][pX]
+	f.Svisible[fmt.Sprintf("%d,%d", pX, pY)] = struct{}{}
 	f.Area[pY][pX].Explored = true
 	for i := 1; i <= 8; i++ {
 		f.fov(pX, pY, 1, 0, 1, i, r)
 	}
+}
+
+func (f *Floor) IsVisible(x, y int) bool {
+	if _, ok := f.Svisible[fmt.Sprintf("%d,%d", x, y)]; ok {
+		return true
+	}
+	return false
 }
 
 func (f *Floor) InBounds(x, y int) bool {
@@ -34,6 +44,17 @@ func (f *Floor) InBounds(x, y int) bool {
 		return false
 	}
 	return true
+}
+
+func (f *Floor) IsOpaque(x, y int) bool {
+	if f.InBounds(x, y) && f.Area[y][x].Walkable {
+		return false
+	}
+	return true
+}
+
+func (f *Floor) Index(x, y int) (int, int) {
+	return x, y
 }
 
 func (f *Floor) fov(px, py, dist int, lowSlope, highSlope float64, oct, rad int) {
@@ -48,6 +69,7 @@ func (f *Floor) fov(px, py, dist int, lowSlope, highSlope float64, oct, rad int)
 		mapx, mapy := distHeightXY(px, py, dist, int(height), oct)
 		if f.InBounds(mapx, mapy) && distTo(px, py, mapx, mapy) < rad {
 			f.Visible[fmt.Sprintf("%d%d", mapx, mapy)] = f.Area[mapy][mapx]
+			f.Svisible[fmt.Sprintf("%d,%d", mapx, mapy)] = struct{}{}
 			f.Area[mapy][mapx].Explored = true
 		}
 
