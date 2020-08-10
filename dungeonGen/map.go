@@ -1,39 +1,17 @@
 package dungeonGen
 
 import (
-	"fmt"
 	"image/color"
-	"math"
 	"sync"
 
 	"github.com/meshiest/go-dungeon/dungeon"
 )
 
 type Floor struct {
-	Area     [][]*Tile
-	Visible  map[string]*Tile
-	Svisible map[string]struct{}
-	Cols     int
-	Rows     int
+	Area [][]*Tile
+	Cols int
+	Rows int
 	sync.Mutex
-}
-
-func (f *Floor) ComputeFOV(pX, pY, r int) {
-	f.Visible = make(map[string]*Tile)
-	f.Svisible = make(map[string]struct{})
-	f.Visible[fmt.Sprintf("%d%d", pX, pY)] = f.Area[pY][pX]
-	f.Svisible[fmt.Sprintf("%d,%d", pX, pY)] = struct{}{}
-	f.Area[pY][pX].Explored = true
-	for i := 1; i <= 8; i++ {
-		f.fov(pX, pY, 1, 0, 1, i, r)
-	}
-}
-
-func (f *Floor) IsVisible(x, y int) bool {
-	if _, ok := f.Svisible[fmt.Sprintf("%d,%d", x, y)]; ok {
-		return true
-	}
-	return false
 }
 
 func (f *Floor) InBounds(x, y int) bool {
@@ -55,56 +33,6 @@ func (f *Floor) IsOpaque(x, y int) bool {
 
 func (f *Floor) Index(x, y int) (int, int) {
 	return y, x
-}
-
-func (f *Floor) fov(px, py, dist int, lowSlope, highSlope float64, oct, rad int) {
-	if dist > rad {
-		return
-	}
-	low := math.Floor(lowSlope*float64(dist) + 0.5)
-	high := math.Floor(highSlope*float64(dist) + 0.5)
-	inGap := false
-
-	for height := low; height <= high; height++ {
-		mapx, mapy := distHeightXY(px, py, dist, int(height), oct)
-		if f.InBounds(mapx, mapy) && distTo(px, py, mapx, mapy) < rad {
-			f.Visible[fmt.Sprintf("%d%d", mapx, mapy)] = f.Area[mapy][mapx]
-			f.Svisible[fmt.Sprintf("%d,%d", mapx, mapy)] = struct{}{}
-			f.Area[mapy][mapx].Explored = true
-		}
-
-		if f.InBounds(mapx, mapy) && !f.Area[mapy][mapx].Walkable {
-			if inGap {
-				f.fov(px, py, dist+1, lowSlope, (height-0.5)/float64(dist), oct, rad)
-			}
-			lowSlope = (height + 0.5) / float64(dist)
-			inGap = false
-		} else {
-			inGap = true
-			if height == high {
-				f.fov(px, py, dist+1, lowSlope, highSlope, oct, rad)
-			}
-		}
-	}
-}
-
-func distHeightXY(px, py, d, h, oct int) (int, int) {
-	if oct&0x1 > 0 {
-		d = -d
-	}
-	if oct&0x2 > 0 {
-		h = -h
-	}
-	if oct&0x4 > 0 {
-		return px + h, py + d
-	}
-	return px + d, py + h
-}
-
-func distTo(x1, y1, x2, y2 int) int {
-	vx := math.Pow(float64(x1-x2), 2)
-	vy := math.Pow(float64(y1-y2), 2)
-	return int(math.Sqrt(vx + vy))
 }
 
 func New(cols, rows, fontSize int) *Floor {
