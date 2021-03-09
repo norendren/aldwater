@@ -1,9 +1,9 @@
 package player
 
 import (
-	"aldwater/dungeonGen"
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/inpututil"
+	"github.com/norendren/aldwater/dungeonGen"
 )
 
 type Player struct {

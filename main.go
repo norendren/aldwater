@@ -1,11 +1,7 @@
 package main
 
 import (
-	"aldwater/displayResource"
-	"aldwater/dungeonGen"
-	"aldwater/player"
 	"errors"
-	"github.com/norendren/go-fov/fov"
 	"image/color"
 	"log"
 	"strconv"
@@ -15,6 +11,10 @@ import (
 	"github.com/hajimehoshi/ebiten/examples/resources/fonts"
 	"github.com/hajimehoshi/ebiten/inpututil"
 	"github.com/hajimehoshi/ebiten/text"
+	"github.com/norendren/aldwater/displayResource"
+	"github.com/norendren/aldwater/dungeonGen"
+	"github.com/norendren/aldwater/player"
+	"github.com/norendren/go-fov/fov"
 	"golang.org/x/image/font"
 )
 
@@ -69,6 +69,9 @@ func (g *Game) Update(screen *ebiten.Image) error {
 func (g *Game) Draw(screen *ebiten.Image) {
 	for y, row := range g.Level.Area {
 		for x, tile := range row {
+			if x == p.X && y == p.Y {
+				continue
+			}
 			if g.FOVCalc.IsVisible(x, y) {
 				text.Draw(screen, tile.Char, normalFont, tile.Posx, tile.Posy, tile.Color)
 				tile.Explored = true
