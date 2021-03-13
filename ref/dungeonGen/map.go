@@ -84,5 +84,6 @@ func NewTile(walkable bool, char string, posx, posy int, c color.Color) *Tile {
 		Posx:     posx,
 		Posy:     posy,
 		Color:    c,
+		Explored: true,
 	}
 }

@@ -3,7 +3,7 @@ package player
 import (
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/inpututil"
-	"github.com/norendren/aldwater/dungeonGen"
+	"github.com/norendren/aldwater/ref/dungeonGen"
 )
 
 type Player struct {

@@ -2,20 +2,21 @@ package main
 
 import (
 	"errors"
-	"image/color"
-	"log"
-	"strconv"
-
+	"fmt"
 	"github.com/golang/freetype/truetype"
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/examples/resources/fonts"
 	"github.com/hajimehoshi/ebiten/inpututil"
 	"github.com/hajimehoshi/ebiten/text"
-	"github.com/norendren/aldwater/displayResource"
-	"github.com/norendren/aldwater/dungeonGen"
-	"github.com/norendren/aldwater/player"
+	"github.com/norendren/aldwater/ref/dungeonGen"
+	"github.com/norendren/aldwater/ref/player"
 	"github.com/norendren/go-fov/fov"
 	"golang.org/x/image/font"
+	"image/color"
+	"log"
+	"math/rand"
+	"strconv"
+	"time"
 )
 
 //30x30
@@ -35,6 +36,7 @@ var p = player.Player{
 }
 
 func init() {
+	rand.Seed(time.Now().Unix())
 	tt, err := truetype.Parse(fonts.MPlus1pRegular_ttf)
 	if err != nil {
 		log.Fatal(err)
@@ -61,6 +63,11 @@ func (g *Game) Update(screen *ebiten.Image) error {
 		return errors.New("ended by player")
 	}
 	p.HandleMovement(g.Level)
+	if inpututil.IsKeyJustPressed(ebiten.KeyR) {
+		g.Level = dungeonGen.New(rows, cols, int(fontSize))
+		g.FOVCalc = fov.New()
+		p.StartingPosition(g.Level)
+	}
 	g.FOVCalc.Compute(g.Level, p.X, p.Y, 6)
 
 	return nil
@@ -69,16 +76,18 @@ func (g *Game) Update(screen *ebiten.Image) error {
 func (g *Game) Draw(screen *ebiten.Image) {
 	for y, row := range g.Level.Area {
 		for x, tile := range row {
-			if x == p.X && y == p.Y {
-				continue
-			}
-			if g.FOVCalc.IsVisible(x, y) {
-				text.Draw(screen, tile.Char, normalFont, tile.Posx, tile.Posy, tile.Color)
-				tile.Explored = true
-			}
-			if tile.Explored && !g.FOVCalc.IsVisible(x, y) {
-				text.Draw(screen, tile.Char, normalFont, tile.Posx, tile.Posy, displayResource.Color3)
-			}
+			g.FOVCalc.IsVisible(x, y)
+			text.Draw(screen, tile.Char, normalFont, tile.Posx, tile.Posy, tile.Color)
+			//if x == p.X && y == p.Y {
+			//	continue
+			//}
+			//if g.FOVCalc.IsVisible(x, y) {
+			//	text.Draw(screen, tile.Char, normalFont, tile.Posx, tile.Posy, tile.Color)
+			//	tile.Explored = true
+			//}
+			//if tile.Explored && !g.FOVCalc.IsVisible(x, y) {
+			//	text.Draw(screen, tile.Char, normalFont, tile.Posx, tile.Posy, displayResource.Color3)
+			//}
 		}
 	}
 
@@ -90,6 +99,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		color.White)
 
 	text.Draw(screen, strconv.Itoa(int(ebiten.CurrentTPS())), normalFont, 24, 700, color.White)
+	text.Draw(screen, fmt.Sprint("Position ", p.X, p.Y), normalFont, 24, 600, color.White)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
